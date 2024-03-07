@@ -61,7 +61,7 @@ class Teachability(AgentCapability):
         self.teachable_agent = agent
 
         # Register a hook for processing the last message.
-        agent.register_hook(hookable_method="process_last_received_message", hook=self.process_last_received_message)
+        agent.register_hook(hookable_method=agent.process_last_message, hook=self.process_last_message)
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:
@@ -82,7 +82,7 @@ class Teachability(AgentCapability):
         """Adds a few arbitrary memos to the DB."""
         self.memo_store.prepopulate()
 
-    def process_last_received_message(self, text):
+    def process_last_message(self, text):
         """
         Appends any relevant memos to the message text, and stores any apparent teachings in new memos.
         Uses TextAnalyzerAgent to make decisions about memo storage and retrieval.
@@ -293,12 +293,20 @@ class MemoStore:
             pickle.dump(self.uid_text_dict, file)
 
     def reset_db(self):
-        """Forces immediate deletion of the DB's contents, in memory and on disk."""
+        """Forces immediate deletion of the DB's contents, in memory and on disk, and prints the new DB."""
         print(colored("\nCLEARING MEMORY", "light_green"))
         self.db_client.delete_collection("memos")
         self.vec_db = self.db_client.create_collection("memos")
         self.uid_text_dict = {}
         self._save_memos()
+        # Print the newly created, empty vector DB
+        self.print_db_contents()
+    def print_db_contents(self):
+        """Prints the current contents of the vector database."""
+        print(colored("CURRENT VECTOR DATABASE CONTENTS:", "light_green"))
+        for uid in self.uid_text_dict:
+            input_text, output_text = self.uid_text_dict[uid]
+            print(colored(f"ID: {uid}, INPUT: {input_text}, OUTPUT: {output_text}", "light_green"))
 
     def add_input_output_pair(self, input_text, output_text):
         """Adds an input-output pair to the vector DB."""
